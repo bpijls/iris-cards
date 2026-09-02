@@ -1,0 +1,21 @@
+services:
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - caddy_proxy
+    # Uncomment for local access without Caddy:
+    # ports:
+    #   - "${HOST_PORT:-8777}:80"
+    labels:
+      caddy: ${APP_DOMAIN}
+      caddy.reverse_proxy: "{{upstreams 80}}"
+      caddy_docker_network: ${CADDY_NETWORK}
+
+networks:
+  caddy_proxy:
+    external: true
+    name: ${CADDY_NETWORK}

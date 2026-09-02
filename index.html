@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iris Deck &mdash; Decision Tree Card Set</title>
+<style>
+  :root{
+    --setosa-a:#f2b705; --setosa-b:#f4d35e;
+    --versicolor-a:#3a86ff; --versicolor-b:#8ecae6;
+    --virginica-a:#7b2cbf; --virginica-b:#c77dff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+    background:#20232a radial-gradient(circle at 30% 20%,#2f3646,#161821 70%);
+    color:#e9e9ef;padding:32px 20px 64px;
+  }
+  header{max-width:1100px;margin:0 auto 28px;text-align:center}
+  header h1{font-size:2rem;letter-spacing:.5px}
+  header p{opacity:.75;margin-top:8px;font-size:.95rem}
+  .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  .controls button{
+    font:inherit;font-weight:bold;cursor:pointer;border:2px solid #555;
+    background:#2b2f3a;color:#e9e9ef;padding:6px 16px;border-radius:20px;
+  }
+  .controls button.active{background:#e9e9ef;color:#20232a;border-color:#e9e9ef}
+  .grid{
+    max-width:1200px;margin:0 auto;display:grid;gap:22px;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  }
+  .card{
+    position:relative;border-radius:16px;padding:12px;
+    background:linear-gradient(160deg,var(--a),var(--b));
+    box-shadow:0 10px 24px rgba(0,0,0,.45),inset 0 0 0 3px rgba(255,255,255,.35);
+    color:#1a1a1a;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+  }
+  .card[data-species=setosa]{--a:var(--setosa-a);--b:var(--setosa-b)}
+  .card[data-species=versicolor]{--a:var(--versicolor-a);--b:var(--versicolor-b)}
+  .card[data-species=virginica]{--a:var(--virginica-a);--b:var(--virginica-b)}
+  .card-inner{background:#fdfdf5;border-radius:10px;padding:10px;border:2px solid rgba(0,0,0,.25)}
+  .row1{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .name{font-size:1.15rem;font-weight:bold;text-transform:capitalize;letter-spacing:.3px}
+  .genus{font-size:.65rem;opacity:.6;font-style:italic}
+  .art{
+    margin:8px 0;border:2px solid rgba(0,0,0,.3);border-radius:6px;overflow:hidden;
+    aspect-ratio:1/1;background:#efefe6;
+  }
+  .art img{width:100%;height:100%;object-fit:cover;display:block}
+  .badge{
+    display:inline-block;font-size:.6rem;font-weight:bold;text-transform:uppercase;
+    letter-spacing:.8px;padding:2px 8px;border-radius:10px;background:rgba(0,0,0,.12);
+  }
+  table.stats{width:100%;border-collapse:collapse;margin-top:6px;font-size:.82rem}
+  table.stats td{padding:3px 4px;border-bottom:1px solid rgba(0,0,0,.12)}
+  table.stats td:last-child{text-align:right;font-weight:bold;font-variant-numeric:tabular-nums}
+  table.stats tr:last-child td{border-bottom:none}
+  .unit{font-size:.62rem;opacity:.55;font-weight:normal}
+  .foot{display:flex;justify-content:space-between;margin-top:8px;font-size:.58rem;opacity:.6}
+  @media print{
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff;padding:0}
+    header,.controls{display:none}
+    .grid{grid-template-columns:repeat(3,1fr);gap:6mm}
+    .card{
+      break-inside:avoid;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);
+      border:1px solid rgba(0,0,0,.15);
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>&#127807; Iris Deck</h1>
+  <p>24 specimen cards from the classic Iris dataset (Fisher, 1936) &mdash; a subset of 8 per species.
+     Sort them, split them, and grow a decision tree by hand.</p>
+  <div class="controls" id="controls">
+    <button data-f="all" class="active">All 24</button>
+    <button data-f="setosa">Setosa</button>
+    <button data-f="versicolor">Versicolor</button>
+    <button data-f="virginica">Virginica</button>
+    <button onclick="window.print()">&#128424; Print</button>
+  </div>
+</header>
+<main class="grid" id="grid"></main>
+
+<script src="data.js"></script>
+<script>
+  const cards = (window.IRIS_DATA && window.IRIS_DATA.cards) || [];
+  const grid = document.getElementById('grid');
+  const fmt = v => v.toFixed(1);
+
+  function render(filter){
+    grid.innerHTML = '';
+    cards.filter(c => filter === 'all' || c.species === filter).forEach((c, i) => {
+      const el = document.createElement('article');
+      el.className = 'card';
+      el.dataset.species = c.species;
+      el.innerHTML = `
+        <div class="card-inner">
+          <div class="row1">
+            <div>
+              <div class="name">${c.species}</div>
+              <div class="genus">Iris ${c.species}</div>
+            </div>
+          </div>
+          <div class="art"><img loading="lazy" alt="Iris ${c.species}" src="images/${c.id}.png"></div>
+          <span class="badge">Specimen ${c.id}</span>
+          <table class="stats">
+            <tr><td>Sepal length <span class="unit">cm</span></td><td>${fmt(c.sepal_length)}</td></tr>
+            <tr><td>Sepal width <span class="unit">cm</span></td><td>${fmt(c.sepal_width)}</td></tr>
+            <tr><td>Petal length <span class="unit">cm</span></td><td>${fmt(c.petal_length)}</td></tr>
+            <tr><td>Petal width <span class="unit">cm</span></td><td>${fmt(c.petal_width)}</td></tr>
+          </table>
+          <div class="foot"><span>Iris Deck</span><span>Fisher 1936</span></div>
+        </div>`;
+      grid.appendChild(el);
+    });
+  }
+
+  document.getElementById('controls').addEventListener('click', e => {
+    const b = e.target.closest('button[data-f]');
+    if (!b) return;
+    document.querySelectorAll('#controls button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    render(b.dataset.f);
+  });
+
+  render('all');
+</script>
+</body>
+</html>

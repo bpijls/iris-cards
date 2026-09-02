@@ -2,3 +2,6 @@
 __pycache__/
 *.log
 .env
+
+# Generated print PDF (regenerate from index.html)
+iris-cards-print.pdf

@@ -101,6 +101,14 @@
   const COLORS = { setosa: '#f2b705', versicolor: '#3a86ff', virginica: '#7b2cbf' };
   const fmt = v => v.toFixed(1);
 
+  const RANGES = {};
+  FEATURES.forEach(f => {
+    const vals = cards.map(c => c[f]);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const pad = (max - min) * 0.08;
+    RANGES[f] = [min - pad, max + pad];
+  });
+
   let assign = { x: 'sepal_length', y: 'sepal_width', z: 'petal_length' };
   const excludedFeature = () => FEATURES.find(f => !Object.values(assign).includes(f));
 
@@ -169,9 +177,9 @@
       margin: { l: 0, r: 0, b: 0, t: 10 },
       showlegend: false,
       scene: {
-        xaxis: { title: LABELS[assign.x] + ' (cm)', gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
-        yaxis: { title: LABELS[assign.y] + ' (cm)', gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
-        zaxis: { title: LABELS[assign.z] + ' (cm)', gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
+        xaxis: { title: LABELS[assign.x] + ' (cm)', range: RANGES[assign.x], autorange: false, gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
+        yaxis: { title: LABELS[assign.y] + ' (cm)', range: RANGES[assign.y], autorange: false, gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
+        zaxis: { title: LABELS[assign.z] + ' (cm)', range: RANGES[assign.z], autorange: false, gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
       },
     };
     return Plotly.react('plot', traces, layout, { responsive: true, displaylogo: false });

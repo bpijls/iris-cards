@@ -28,10 +28,12 @@
   }
   .axis-control{display:flex;flex-direction:column;gap:4px;align-items:center}
   .axis-control label{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;opacity:.7}
-  .axis-control select{
-    font:inherit;font-size:.85rem;background:#2b2f3a;color:#e9e9ef;border:2px solid #555;
-    border-radius:8px;padding:6px 10px;min-width:150px;
+  .axis-control button{
+    font:inherit;font-size:.85rem;font-weight:bold;background:#2b2f3a;color:#e9e9ef;
+    border:2px solid #555;border-radius:8px;padding:6px 14px;min-width:150px;cursor:pointer;
   }
+  .axis-control button:hover{border-color:#e9e9ef;background:#343a48}
+  .axis-control button:active{transform:translateY(1px)}
   .excluded{display:flex;flex-direction:column;gap:4px;align-items:center}
   .excluded label{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;opacity:.7}
   .excluded span{
@@ -75,8 +77,8 @@
 <body>
 <header>
   <h1>&#127807; Iris Deck &mdash; 4D Point Cloud</h1>
-  <p>All four measurements at once: pick which feature sits on each 3D axis, the
-     fourth rides along as the leftover. Hover a point to see its card.</p>
+  <p>All four measurements at once: click an axis label to swap it with the
+     unused fourth feature. Hover a point to see its card.</p>
   <a class="back" href="index.html">&larr; Back to cards</a>
 </header>
 
@@ -129,27 +131,24 @@
   function renderControls() {
     const controls = document.getElementById('controls');
     controls.innerHTML = '';
+    const excluded = excludedFeature();
     ['x', 'y', 'z'].forEach(axis => {
       const wrap = document.createElement('div');
       wrap.className = 'axis-control';
       const label = document.createElement('label');
       label.textContent = axis + '-axis';
-      const select = document.createElement('select');
-      FEATURES.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = LABELS[f] + (f === excludedFeature() && f !== assign[axis] ? ' (unused)' : '');
-        if (f === assign[axis]) opt.selected = true;
-        select.appendChild(opt);
-      });
-      select.addEventListener('change', e => setAxisFeature(axis, e.target.value));
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = LABELS[assign[axis]];
+      btn.title = `Click to swap with ${LABELS[excluded]}`;
+      btn.addEventListener('click', () => setAxisFeature(axis, excluded));
       wrap.appendChild(label);
-      wrap.appendChild(select);
+      wrap.appendChild(btn);
       controls.appendChild(wrap);
     });
     const excl = document.createElement('div');
     excl.className = 'excluded';
-    excl.innerHTML = `<label>Not shown</label><span>${LABELS[excludedFeature()]}</span>`;
+    excl.innerHTML = `<label>Not shown</label><span>${LABELS[excluded]}</span>`;
     controls.appendChild(excl);
   }
 

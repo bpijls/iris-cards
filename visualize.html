@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iris Deck &mdash; 4D Point Cloud</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root{
+    --setosa:#f2b705; --versicolor:#3a86ff; --virginica:#7b2cbf;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+    background:#20232a radial-gradient(circle at 30% 20%,#2f3646,#161821 70%);
+    color:#e9e9ef;padding:24px 20px 40px;min-height:100vh;
+  }
+  header{max-width:1100px;margin:0 auto 20px;text-align:center}
+  header h1{font-size:1.8rem;letter-spacing:.5px}
+  header p{opacity:.75;margin-top:6px;font-size:.9rem}
+  .back{display:inline-block;margin-top:14px;font:inherit;font-weight:bold;cursor:pointer;
+    border:2px solid #555;background:#2b2f3a;color:#e9e9ef;padding:6px 16px;border-radius:20px;
+    text-decoration:none}
+  .back:hover{border-color:#e9e9ef}
+  .controls{
+    max-width:1100px;margin:0 auto 16px;display:flex;gap:18px;flex-wrap:wrap;
+    justify-content:center;align-items:flex-end;
+  }
+  .axis-control{display:flex;flex-direction:column;gap:4px;align-items:center}
+  .axis-control label{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;opacity:.7}
+  .axis-control select{
+    font:inherit;font-size:.85rem;background:#2b2f3a;color:#e9e9ef;border:2px solid #555;
+    border-radius:8px;padding:6px 10px;min-width:150px;
+  }
+  .excluded{display:flex;flex-direction:column;gap:4px;align-items:center}
+  .excluded label{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;opacity:.7}
+  .excluded span{
+    font-size:.85rem;font-weight:bold;background:rgba(233,233,239,.1);
+    border:2px dashed #555;border-radius:8px;padding:6px 14px;
+  }
+  .legend{
+    max-width:1100px;margin:0 auto 10px;display:flex;gap:18px;justify-content:center;
+    font-size:.8rem;flex-wrap:wrap;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  #plot{max-width:1100px;height:68vh;min-height:460px;margin:0 auto}
+
+  .card-tip{
+    position:fixed;pointer-events:none;z-index:1000;width:220px;
+    border-radius:14px;padding:10px;opacity:0;transition:opacity .08s;
+    box-shadow:0 12px 28px rgba(0,0,0,.55),inset 0 0 0 3px rgba(255,255,255,.35);
+    color:#1a1a1a;
+  }
+  .card-tip.show{opacity:1}
+  .card-tip[data-species=setosa]{background:linear-gradient(160deg,#f2b705,#f4d35e)}
+  .card-tip[data-species=versicolor]{background:linear-gradient(160deg,#3a86ff,#8ecae6)}
+  .card-tip[data-species=virginica]{background:linear-gradient(160deg,#7b2cbf,#c77dff)}
+  .card-tip .inner{background:#fdfdf5;border-radius:10px;padding:9px;border:2px solid rgba(0,0,0,.25)}
+  .card-tip .name{font-size:1rem;font-weight:bold;text-transform:capitalize}
+  .card-tip .genus{font-size:.6rem;opacity:.6;font-style:italic;margin-bottom:6px}
+  .card-tip .art{border:2px solid rgba(0,0,0,.3);border-radius:6px;overflow:hidden;aspect-ratio:1/1;background:#efefe6}
+  .card-tip .art img{width:100%;height:100%;object-fit:cover;display:block}
+  .card-tip .badge{
+    display:inline-block;margin-top:6px;font-size:.55rem;font-weight:bold;text-transform:uppercase;
+    letter-spacing:.7px;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,.12);
+  }
+  .card-tip table{width:100%;border-collapse:collapse;margin-top:5px;font-size:.72rem}
+  .card-tip table td{padding:2px 3px;border-bottom:1px solid rgba(0,0,0,.12)}
+  .card-tip table td:last-child{text-align:right;font-weight:bold;font-variant-numeric:tabular-nums}
+  .card-tip table tr:last-child td{border-bottom:none}
+  .card-tip .unit{font-size:.55rem;opacity:.55;font-weight:normal}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#127807; Iris Deck &mdash; 4D Point Cloud</h1>
+  <p>All four measurements at once: pick which feature sits on each 3D axis, the
+     fourth rides along as the leftover. Hover a point to see its card.</p>
+  <a class="back" href="index.html">&larr; Back to cards</a>
+</header>
+
+<div class="controls" id="controls"></div>
+<div class="legend">
+  <span><i style="background:var(--setosa)"></i>Setosa</span>
+  <span><i style="background:var(--versicolor)"></i>Versicolor</span>
+  <span><i style="background:var(--virginica)"></i>Virginica</span>
+</div>
+
+<div id="plot"></div>
+<div class="card-tip" id="cardTip"><div class="inner" id="cardTipInner"></div></div>
+
+<script src="data.js"></script>
+<script>
+  const cards = (window.IRIS_DATA && window.IRIS_DATA.cards) || [];
+  const FEATURES = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width'];
+  const LABELS = {
+    sepal_length: 'Sepal length', sepal_width: 'Sepal width',
+    petal_length: 'Petal length', petal_width: 'Petal width',
+  };
+  const COLORS = { setosa: '#f2b705', versicolor: '#3a86ff', virginica: '#7b2cbf' };
+  const fmt = v => v.toFixed(1);
+
+  let assign = { x: 'sepal_length', y: 'sepal_width', z: 'petal_length' };
+  const excludedFeature = () => FEATURES.find(f => !Object.values(assign).includes(f));
+
+  function setAxisFeature(axis, feature) {
+    const current = assign[axis];
+    if (feature === current) return;
+    if (feature === excludedFeature()) {
+      assign[axis] = feature;
+    } else {
+      const otherAxis = Object.keys(assign).find(a => assign[a] === feature);
+      assign[otherAxis] = current;
+      assign[axis] = feature;
+    }
+    renderControls();
+    drawPlot();
+  }
+
+  function renderControls() {
+    const controls = document.getElementById('controls');
+    controls.innerHTML = '';
+    ['x', 'y', 'z'].forEach(axis => {
+      const wrap = document.createElement('div');
+      wrap.className = 'axis-control';
+      const label = document.createElement('label');
+      label.textContent = axis + '-axis';
+      const select = document.createElement('select');
+      FEATURES.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = LABELS[f] + (f === excludedFeature() && f !== assign[axis] ? ' (unused)' : '');
+        if (f === assign[axis]) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', e => setAxisFeature(axis, e.target.value));
+      wrap.appendChild(label);
+      wrap.appendChild(select);
+      controls.appendChild(wrap);
+    });
+    const excl = document.createElement('div');
+    excl.className = 'excluded';
+    excl.innerHTML = `<label>Not shown</label><span>${LABELS[excludedFeature()]}</span>`;
+    controls.appendChild(excl);
+  }
+
+  function buildTraces() {
+    return Object.keys(COLORS).map(sp => {
+      const pts = cards.filter(c => c.species === sp);
+      return {
+        type: 'scatter3d', mode: 'markers', name: sp[0].toUpperCase() + sp.slice(1),
+        x: pts.map(c => c[assign.x]),
+        y: pts.map(c => c[assign.y]),
+        z: pts.map(c => c[assign.z]),
+        customdata: pts.map(c => c.id),
+        marker: { size: 6, color: COLORS[sp], line: { color: '#20232a', width: 0.5 } },
+        hoverinfo: 'none',
+      };
+    });
+  }
+
+  function drawPlot() {
+    const traces = buildTraces();
+    const layout = {
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: '#e9e9ef' },
+      margin: { l: 0, r: 0, b: 0, t: 10 },
+      showlegend: false,
+      scene: {
+        xaxis: { title: LABELS[assign.x] + ' (cm)', gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
+        yaxis: { title: LABELS[assign.y] + ' (cm)', gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
+        zaxis: { title: LABELS[assign.z] + ' (cm)', gridcolor: '#444', zerolinecolor: '#555', backgroundcolor: 'rgba(0,0,0,0)' },
+      },
+    };
+    return Plotly.react('plot', traces, layout, { responsive: true, displaylogo: false });
+  }
+
+  // --- hover card tooltip ------------------------------------------------
+  const tip = document.getElementById('cardTip');
+  const tipInner = document.getElementById('cardTipInner');
+  let lastX = 0, lastY = 0;
+  const plotEl = document.getElementById('plot');
+  plotEl.addEventListener('mousemove', e => { lastX = e.clientX; lastY = e.clientY; });
+
+  function cardTipHTML(c) {
+    return `
+      <div class="name">${c.species}</div>
+      <div class="genus">Iris ${c.species}</div>
+      <div class="art"><img alt="Iris ${c.species}" src="images/${c.id}.png"></div>
+      <span class="badge">Specimen ${c.id}</span>
+      <table>
+        <tr><td>Sepal length <span class="unit">cm</span></td><td>${fmt(c.sepal_length)}</td></tr>
+        <tr><td>Sepal width <span class="unit">cm</span></td><td>${fmt(c.sepal_width)}</td></tr>
+        <tr><td>Petal length <span class="unit">cm</span></td><td>${fmt(c.petal_length)}</td></tr>
+        <tr><td>Petal width <span class="unit">cm</span></td><td>${fmt(c.petal_width)}</td></tr>
+      </table>`;
+  }
+
+  function positionTip() {
+    const pad = 16;
+    const w = tip.offsetWidth || 220, h = tip.offsetHeight || 260;
+    let left = lastX + pad, top = lastY + pad;
+    if (left + w > window.innerWidth) left = lastX - w - pad;
+    if (top + h > window.innerHeight) top = lastY - h - pad;
+    tip.style.left = Math.max(4, left) + 'px';
+    tip.style.top = Math.max(4, top) + 'px';
+  }
+
+  function bindHoverEvents() {
+    plotEl.on('plotly_hover', ev => {
+      const pt = ev.points && ev.points[0];
+      if (!pt) return;
+      const card = cards.find(c => c.id === pt.customdata);
+      if (!card) return;
+      tip.dataset.species = card.species;
+      tipInner.innerHTML = cardTipHTML(card);
+      positionTip();
+      tip.classList.add('show');
+    });
+    plotEl.on('plotly_unhover', () => tip.classList.remove('show'));
+  }
+
+  renderControls();
+  drawPlot().then(bindHoverEvents);
+</script>
+</body>
+</html>
